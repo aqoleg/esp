@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>timer</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#007B8B" />
+        <link rel="icon" href="icon.png" />
+        <style>
+            html, body {
+                margin: 0px;
+                padding: 0px;
+                background: #007B8B;
+                font-family: monospace;
+            }
+            #header {
+                margin-bottom: 32px;
+                height: 68px;
+            }
+            #header a {
+                float: left;
+                padding: 4px;
+                color: black;
+                text-decoration: none;
+                font-size: 18px;
+            }
+            .menu {
+                margin: 18px 1.6%;
+            }
+            .right {
+                float: right !important;
+            }
+            .active {
+                color: white !important;
+            }
+            #header img {
+                display: block;
+            }
+            button {
+                display: block;
+                margin: auto;
+                border: none;
+                padding: 0px;
+                height: 32px;
+                background: white;
+                font-family: monospace;
+                cursor: pointer;
+            }
+            #run {
+                position: relative;
+                left: -120px;
+                width: 80px;
+                font-size: 20px;
+            }
+            #time {
+                position: relative;
+                top: -32px;
+                width: 120px;
+                font-size: 20px;
+            }
+            #add {
+                position: relative;
+                top: -64px;
+                left: 120px;
+                width: 80px;
+                font-size: 20px;
+            }
+            #events {
+                margin-bottom: 32px;
+                text-align: center;
+            }
+            #events button {
+                margin-bottom: 16px;
+                padding: 0px 16px;
+                width: 320px;
+                text-align: left;
+                font-size: 18px;
+            }
+            .next {
+                background: black;
+                color:white;
+            }
+            #overlay {
+                display: none;
+            }
+            #back {
+                position: relative;
+                left: 120px;
+                width: 80px;
+                font-size: 20px;
+            }
+            #title {
+                position: relative;
+                top: -32px;
+                left: -50px;
+                margin: 0px auto;
+                width: 220px;
+                line-height: 32px;
+                font-size: 20px;
+                font-weight: normal;
+            }
+            #labelTime {
+                display: block;
+                margin: 32px auto;
+                width: 320px;
+                cursor: text;
+            }
+            #inputTime {
+                display: block;
+                margin-top: 8px;
+                border: none;
+                border-bottom: 2px solid white;
+                padding: 2px 0px 0px;
+                width: 100%;
+                outline: 0;
+                background: none;
+                color: black;
+                font-family: monospace;
+                font-size: 16px;
+            }
+            #inputTime:focus {
+                background: white;
+            }
+            .radio {
+                margin: 0px auto 32px;
+                width: 320px;
+                line-height: 32px;
+            }
+            .radio label {
+                display: block;
+                float: right;
+                width: 120px;
+                text-align: center;
+                font-size: 16px;
+                cursor: pointer;
+            }
+            .radio input {
+                display: none;
+            }
+            .radio div {
+                background: white;
+            }
+            .radio input:checked ~ div {
+                background: black;
+                color: white;
+            }
+            #create {
+                margin-bottom: 32px;
+                width: 320px;
+                font-size: 20px;
+            }
+            #delete {
+                position: relative;
+                left: -85px;
+                width: 150px;
+                font-size: 20px;
+            }
+            #edit {
+                position: relative;
+                top: -32px;
+                left: 85px;
+                width: 150px;
+                font-size: 20px;
+            }
+            @media (hover: hover) {
+                a:hover {
+                    color: white !important;
+                }
+                a:hover img {
+                    opacity: 0.5;
+                }
+                button:hover {
+                    color: #007B8B;
+                }
+                #inputTime:hover {
+                    border-bottom: 2px solid black;
+                }
+                .radio input:hover ~ div {
+                    color: #007B8B;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="header">
+            <a href="index.html">
+                <img src="ktoolu.svg" width="60" height="60" title="relays" />
+            </a>
+            <a class="menu active" href="timer.html">timer</a>
+            <a class="menu" href="wifi.html">wifi</a>
+            <a class="menu right" href="links">more...</a>
+        </div>
+        <div id="main">
+            <button id="run" type="button" title="switch"></button>
+            <button id="time" type="button" title="sync"></button>
+            <button id="add" type="button">add</button>
+            <div id="events">loading...</div>
+        </div>
+        <div id="overlay">
+            <button id="back" type="back">back</button>
+            <h2 id="title"></h2>
+            <label id="labelTime">time:
+                <input id="inputTime" type="text" />
+            </label>
+            <div class="radio">relay:
+                <label>
+                    <input id="relay1" type="radio" name="relay" />
+                    <div>2</div>
+                </label>
+                <label>
+                    <input id="relay0" type="radio" name="relay" />
+                    <div>1</div>
+                </label>
+            </div>
+            <div class="radio">state:
+                <label>
+                    <input id="off" type="radio" name="state" />
+                    <div>off</div>
+                </label>
+                <label>
+                    <input id="on" type="radio" name="state" />
+                    <div>on</div>
+                </label>
+            </div>
+            <button id="delete" type="button">delete</button>
+            <button id="edit" type="button">edit</button>
+            <button id="create" type="button">create</button>
+        </div>
+        <script>
+            "use strict";
+
+            (function () {
+                var events = null;
+                var next = -1;
+                var editedEventN;
+
+                document.getElementById('run').onclick = run;
+                document.getElementById('time').onclick = function () {
+                    fetch('sync');
+                };
+                document.getElementById('add').onclick = add;
+                document.getElementById('back').onclick = function () {
+                    document.getElementById('overlay').style.display = 'none';
+                    document.getElementById('main').style.display = 'block';
+                };
+                document.getElementById('delete').onclick = del;
+                document.getElementById('edit').onclick = edit;
+                document.getElementById('create').onclick = create;
+
+                setInterval(getTime, 1000);
+                getEvents();
+                getTime();
+
+                function getTime() {
+                    fetch('time').then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(function (json) {
+                        var date = new Date(json.time * 1000).toTimeString();
+                        document.getElementById('time').innerHTML = date.substr(0, 8);
+                        if (json.nextEvent !== next) {
+                            if (document.getElementById(next)) {
+                                document.getElementById(next).className = '';
+                            }
+                            if (document.getElementById(json.nextEvent)) {
+                                document.getElementById(json.nextEvent).className = 'next';
+                                next = json.nextEvent;
+                            }
+                        }
+                    }).catch(function (error) {
+                        console.log(error);
+                    });
+                }
+
+                function getEvents() {
+                    fetch('events').then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(setEvents).catch(function (error) {
+                        console.log(error);
+                    });
+                }
+
+                function setEvents(json) {
+                    document.getElementById('run').innerHTML = json.run;
+                    var length = json.events.length;
+                    document.getElementById('events').innerHTML = length > 0 ? '' : 'no events';
+                    for (var i = 0; i < length; i++) {
+                        var text = new Date(json.events[i].time * 1000).toTimeString().substr(0, 8) +
+                            ' - relay ' +
+                            (Number(json.events[i].relay) + 1) +
+                            ' - ' +
+                            json.events[i].state;
+                        var button = document.createElement('button');
+                        button.type = 'button';
+                        button.id = i;
+                        button.onclick = select;
+                        button.innerHTML = text;
+                        document.getElementById('events').appendChild(button);
+                    }
+                    events = json;
+                    next = -1;
+                }
+
+                function run() {
+                    if (events === null) {
+                        return;
+                    }
+                    var data = 'run=' + (events.run === 'off' ? 'on' : 'off');
+                    events = null;
+                    document.getElementById('run').innerHTML = '';
+                    document.getElementById('events').innerHTML = 'loading...';
+                    fetch('run', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: data
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(setEvents).catch(function (error) {
+                        events = {};
+                        document.getElementById('events').innerHTML = 'error';
+                        console.log(error);
+                    });
+                }
+
+                function add() {
+                    document.getElementById('title').innerHTML = 'create new event';
+                    document.getElementById('inputTime').value = '';
+                    document.getElementById('relay0').checked = 'checked';
+                    document.getElementById('on').checked = 'checked';
+                    document.getElementById('delete').style.display = 'none';
+                    document.getElementById('edit').style.display = 'none';
+                    document.getElementById('create').style.display = 'block';
+                    document.getElementById('main').style.display = 'none';
+                    document.getElementById('overlay').style.display = 'block';
+                }
+
+                function select(target) {
+                    editedEventN = target.target.id;
+                    document.getElementById('title').innerHTML = 'edit event ' + (Number(editedEventN) + 1);
+                    var date = new Date(events.events[editedEventN].time * 1000).toTimeString();
+                    document.getElementById('inputTime').value = date.substr(0, 8);
+                    if (events.events[editedEventN].relay === 1) {
+                        document.getElementById('relay1').checked = 'checked';
+                    } else {
+                        document.getElementById('relay0').checked = 'checked';
+                    }
+                    if (events.events[editedEventN].state === 'on') {
+                        document.getElementById('on').checked = 'checked';
+                    } else {
+                        document.getElementById('off').checked = 'checked';
+                    }
+                    document.getElementById('delete').style.display = 'block';
+                    document.getElementById('edit').style.display = 'block';
+                    document.getElementById('create').style.display = 'none';
+                    document.getElementById('main').style.display = 'none';
+                    document.getElementById('overlay').style.display = 'block';
+                }
+
+                function del() {
+                    var data = 'eventN=' + editedEventN;
+                    events = null;
+                    document.getElementById('events').innerHTML = 'loading...';
+                    document.getElementById('overlay').style.display = 'none';
+                    document.getElementById('main').style.display = 'block';
+                    fetch('remove', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: data
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(setEvents).catch(function (error) {
+                        events = {};
+                        document.getElementById('events').innerHTML = 'error';
+                        console.log(error);
+                    });
+                }
+
+                function edit() {
+                    var time = new Date('1970-01-02T' + document.getElementById('inputTime').value + 'Z').getTime();
+                    if (isNaN(time)) {
+                        document.getElementById('inputTime').value = '00:00:00';
+                        return;
+                    }
+                    time = time / 1000 + new Date().getTimezoneOffset() * 60;
+                    var data = 'eventN=' + editedEventN +
+                        '&time=' + time +
+                        '&relay=' + (document.getElementById('relay1').checked ? '1' : '0') +
+                        '&state=' + (document.getElementById('on').checked ? 'on' : 'off');
+                    events = null;
+                    document.getElementById('events').innerHTML = 'loading...';
+                    document.getElementById('overlay').style.display = 'none';
+                    document.getElementById('main').style.display = 'block';
+                    fetch('edit', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: data
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(setEvents).catch(function (error) {
+                        events = {};
+                        document.getElementById('events').innerHTML = 'error';
+                        console.log(error);
+                    });
+                }
+
+                function create() {
+                    var time = new Date('1970-01-02T' + document.getElementById('inputTime').value + 'Z').getTime();
+                    if (isNaN(time)) {
+                        document.getElementById('inputTime').value = '00:00:00';
+                        return;
+                    }
+                    time = time / 1000 + new Date().getTimezoneOffset() * 60;
+                    var data = 'time=' + time +
+                        '&relay=' + (document.getElementById('relay1').checked ? '1' : '0') +
+                        '&state=' + (document.getElementById('on').checked ? 'on' : 'off');
+                    events = null;
+                    document.getElementById('events').innerHTML = 'loading...';
+                    document.getElementById('overlay').style.display = 'none';
+                    document.getElementById('main').style.display = 'block';
+                    fetch('create', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: data
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(setEvents).catch(function (error) {
+                        events = {};
+                        document.getElementById('events').innerHTML = 'error';
+                        console.log(error);
+                    });
+                }
+            })();
+        </script>
+    </body>
+</html>

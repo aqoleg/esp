@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>wifi</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#007B8B" />
+        <link rel="icon" href="icon.png" />
+        <style>
+            html, body {
+                margin: 0px;
+                padding: 0px;
+                background: #007B8B;
+                font-family: monospace;
+            }
+            #header {
+                margin-bottom: 32px;
+                height: 68px;
+            }
+            #header a {
+                float: left;
+                padding: 4px;
+                color: black;
+                text-decoration: none;
+                font-size: 18px;
+            }
+            .menu {
+                margin: 18px 1.6%;
+            }
+            .right {
+                float: right !important;
+            }
+            .active {
+                color: white !important;
+            }
+            #header img {
+                display: block;
+            }
+            button {
+                display: block;
+                margin: auto;
+                border: none;
+                padding: 0px;
+                height: 32px;
+                background: white;
+                font-family: monospace;
+                cursor: pointer;
+            }
+            #scan {
+                position: relative;
+                left: -120px;
+                margin-bottom: 64px;
+                width: 80px;
+                font-size: 20px;
+            }
+            #networks {
+                margin-bottom: 32px;
+                text-align: center;
+            }
+            #networks button {
+                margin-bottom: 16px;
+                padding: 0px 16px;
+                width: 320px;
+                text-align: left;
+                font-size: 18px;
+            }
+            .next {
+                background: black;
+                color:white;
+            }
+            #overlay {
+                display: none;
+            }
+            #back {
+                position: relative;
+                left: 120px;
+                width: 80px;
+                font-size: 20px;
+            }
+            #ssid {
+                position: relative;
+                top: -32px;
+                left: -50px;
+                margin: 0px auto;
+                width: 220px;
+                line-height: 32px;
+                font-size: 20px;
+                font-weight: normal;
+            }
+            #overlay p {
+                margin: 0px auto 8px;
+                padding: 0px;
+                width: 320px;
+            }
+            #overlay label {
+                display: block;
+                margin: 0px auto 32px;
+                width: 320px;
+                cursor: text;
+            }
+            #overlay input {
+                display: block;
+                margin-top: 8px;
+                border: none;
+                border-bottom: 2px solid white;
+                padding: 2px 0px 0px;
+                width: 100%;
+                outline: 0;
+                background: none;
+                color: black;
+                font-family: monospace;
+                font-size: 16px;
+            }
+            #overlay input:focus {
+                background: white;
+            }
+            #connect {
+                margin-bottom: 32px;
+                width: 320px;
+                font-size: 20px;
+            }
+            @media (hover: hover) {
+                a:hover {
+                    color: white !important;
+                }
+                a:hover img {
+                    opacity: 0.5;
+                }
+                button:hover {
+                    color: #007B8B;
+                }
+                #overlay input:hover {
+                    border-bottom: 2px solid black;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="header">
+            <a href="index.html">
+                <img src="ktoolu.svg" width="60" height="60" title="relays" />
+            </a>
+            <a class="menu" href="timer.html">timer</a>
+            <a class="menu active" href="wifi.html">wifi</a>
+            <a class="menu right" href="links">more...</a>
+        </div>
+        <div id="main">
+            <button id="scan" type="button">scan</button>
+            <div id="networks">scanning...</div>
+        </div>
+        <div id="overlay">
+            <button id="back" type="back">back</button>
+            <h2 id="ssid"></h2>
+            <p>signal: <span id="rssi"></span>dbm</p>
+            <p>encription: <span id="encription"></span></p>
+            <p>channel: <span id="channel"></span></p>
+            <label>password:
+                <input id="password" type="text" />
+            </label>
+            <button id="connect" type="button">connect</button>
+        </div>
+        <script>
+            "use strict";
+
+            (function () {
+                var networks = null;
+
+                document.getElementById('scan').onclick = function () {
+                    if (networks === null) {
+                        return;
+                    }
+                    networks = null;
+                    document.getElementById('networks').innerHTML = 'scanning...';
+                    scan();
+                };
+                document.getElementById('back').onclick = function () {
+                    document.getElementById('password').value = '';
+                    document.getElementById('overlay').style.display = 'none';
+                    document.getElementById('main').style.display = 'block';
+                };
+                document.getElementById('connect').onclick = function () {
+                    var data = 'ssid=' + document.getElementById('ssid').innerHTML +
+                        '&password=' + document.getElementById('password').value;
+                    fetch('conn', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: data
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        window.location.reload(true);
+                    }).catch(function (error) {
+                        console.log(error);
+                    });
+                };
+
+                scan();
+
+                function scan() {
+                    fetch('scan').then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(function (json) {
+                        var length = json.length;
+                        document.getElementById('networks').innerHTML = length > 0 ? '' : 'no networks';
+                        for (var i = 0; i < length; i++) {
+                            var button = document.createElement('button');
+                            button.type = 'button';
+                            button.id = i;
+                            button.onclick = select;
+                            button.innerHTML = json[i].ssid;
+                            document.getElementById('networks').appendChild(button);
+                        }
+                        networks = json;
+                    }).catch(function (error) {
+                        console.log(error);
+                        networks = '[]';
+                        document.getElementById('networks').innerHTML = 'error';
+                    });
+                }
+
+                function select(target) {
+                    var item = networks[target.target.id];
+                    document.getElementById('ssid').innerHTML = item.ssid;
+                    document.getElementById('rssi').innerHTML = item.rssi;
+                    document.getElementById('encription').innerHTML = item.encription;
+                    document.getElementById('channel').innerHTML = item.channel;
+                    document.getElementById('main').style.display = 'none';
+                    document.getElementById('overlay').style.display = 'block';
+                }
+            })();
+        </script>
+    </body>
+</html>

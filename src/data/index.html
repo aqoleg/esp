@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>ktoolu</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#007B8B" />
+        <link rel="icon" href="icon.png" />
+        <style>
+            html, body {
+                margin: 0px;
+                padding: 0px;
+                background: #007B8B;
+                font-family: monospace;
+            }
+            #header {
+                margin-bottom: 32px;
+                height: 68px;
+            }
+            #header a {
+                float: left;
+                padding: 4px;
+                color: black;
+                text-decoration: none;
+                font-size: 18px;
+            }
+            .menu {
+                margin: 18px 1.6%;
+            }
+            .right {
+                float: right !important;
+            }
+            #header img {
+                display: block;
+            }
+            p {
+                margin: 4px auto;
+                padding: 0px;
+                height: 18px;
+                text-align: center;
+            }
+            #led {
+                position: relative;
+                top: -23px;
+                left: -150px;
+                width: 18px;
+                border: 1px solid white;
+                border-radius: 10px;
+            }
+            button {
+                display: block;
+                margin: 4px auto 32px;
+                padding: 0px;
+                width: 320px;
+                height: 64px;
+                border: none;
+                background: white;
+                font-family: monospace;
+                font-size: 24px;
+                cursor: pointer;
+            }
+            @media (hover: hover) {
+                a:hover {
+                    color: white !important;
+                }
+                a:hover img {
+                    opacity: 0.5;
+                }
+                button:hover {
+                    color: #007B8B;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="header">
+            <a href="index.html">
+                <img src="ktoolu.svg" width="60" height="60" title="relays" />
+            </a>
+            <a class="menu" href="timer.html">timer</a>
+            <a class="menu" href="wifi.html">wifi</a>
+            <a class="menu right" href="links">more...</a>
+        </div>
+        <p id="loading">loading...</p>
+        <p id="led" title="led"></p>
+        <p>relay 1: <span id="state0"></span></p>
+        <button id="relay0" type="button"></button>
+        <p>relay 2: <span id="state1"></span></p>
+        <button id="relay1" type="button"></button>
+        <script>
+            "use strict";
+
+            (function () {
+                var state = null;
+
+                document.getElementById('relay0').onclick = function () {
+                    switchRelay(0);
+                };
+                document.getElementById('relay1').onclick = function () {
+                    switchRelay(1);
+                };
+
+                setInterval(get, 1000);
+                get();
+
+                function switchRelay(relay) {
+                    if (state === null) {
+                        return;
+                    }
+                    document.getElementById('loading').innerHTML = 'loading...';
+                    var relay0 = Boolean(state & 0b1);
+                    var relay1 = Boolean(state & 0b10);
+                    state = null;
+                    if (relay === 0) {
+                        relay0 = !relay0;
+                    } else if (relay === 1) {
+                        relay1 = !relay1;
+                    }
+                    var data = 'relay0=' + (relay0 ? 'on' : 'off') +
+                        '&relay1=' + (relay1 ? 'on' : 'off');
+                    fetch('switch', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: data
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(set).catch(function (error) {
+                        console.log(error);
+                    });
+                }
+
+                function get() {
+                    fetch('relays').then(function (response) {
+                        if (!response.ok) {
+                            throw response.statusText;
+                        }
+                        return response.json();
+                    }).then(set).catch(function (error) {
+                        console.log(error);
+                    });
+                }
+
+                function set(json) {
+                    var newState = 0;
+                    if (json.relay0 === 'on') {
+                        newState = 0b1;
+                        document.getElementById('state0').innerHTML = 'on';
+                        document.getElementById('relay0').innerHTML = 'turn off';
+                    } else {
+                        document.getElementById('state0').innerHTML = 'off';
+                        document.getElementById('relay0').innerHTML = 'turn on';
+                    }
+                    if (json.relay1 === 'on') {
+                        newState |= 0b10;
+                        document.getElementById('state1').innerHTML = 'on';
+                        document.getElementById('relay1').innerHTML = 'turn off';
+                    } else {
+                        document.getElementById('state1').innerHTML = 'off';
+                        document.getElementById('relay1').innerHTML = 'turn on';
+                    }
+                    if (newState === 0b1) {
+                        document.getElementById('led').style.background = '#34F925';
+                    } else if (newState === 0b10) {
+                        document.getElementById('led').style.background = '#FF1717';
+                    } else if (newState === 0b11) {
+                        document.getElementById('led').style.background = '#D5F42B';
+                    } else {
+                        document.getElementById('led').style.background = 'black';
+                    }
+                    state = newState;
+                    document.getElementById('loading').innerHTML = '';
+                }
+            })();
+        </script>
+    </body>
+</html>
